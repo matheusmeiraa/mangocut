@@ -1,20 +1,22 @@
 {
   "name": "MangoCUT",
   "identifier": "com.mangocut.source",
-  "subtitle": "Editor de projetos de vídeo open source",
+  "subtitle": "Editor de vídeo open source",
   "description": "Fonte do MangoCUT para AltStore e SideStore. Os builds são compilados pelo GitHub Actions a partir do código aberto do repositório e publicados nos releases.",
   "iconURL": "https://matheusmeiraa.github.io/mangocut/icon.png",
   "website": "https://github.com/matheusmeiraa/mangocut",
   "sourceURL": "https://matheusmeiraa.github.io/mangocut/apps.json",
   "tintColor": "#FF8A00",
-  "featuredApps": ["com.mangocut.MangoCUT"],
+  "featuredApps": [
+    "com.mangocut.MangoCUT"
+  ],
   "apps": [
     {
       "name": "MangoCUT",
       "bundleIdentifier": "com.mangocut.MangoCUT",
       "developerName": "Matheus Meira",
-      "subtitle": "Inspecione e repare projetos de vídeo",
-      "localizedDescription": "Abra arquivos draft_content.json ou draft_info.json, veja a duração real, as trilhas, os clipes e os keyframes, valide o projeto e aplique o motor de reparo (duração desatualizada, clipes sobrepostos e clipes em trilha errada). Exporte o projeto corrigido para usar em outro editor compatível.\n\nProjeto open source sob licença MIT. Não é afiliado à ByteDance nem ao CapCut.",
+      "subtitle": "Editor de vídeo open source",
+      "localizedDescription": "Monte vídeos no iPhone: escolha clipes da Fototeca, divida, apare, mude a ordem e a velocidade, aplique filtros (P&B, Vintage, Quente, Frio, Vívido, Contraste), efeitos (zoom, surgir e sumir no preto, desfoque), a transição de dissolver e textos. Exporte em MP4 720p ou 1080p para a Fototeca.\n\nOs projetos são salvos em draft_content.json, compatível com a família CapCut em cortes, ordem e velocidade. O app também inspeciona e repara drafts de outros editores.\n\nProjeto open source sob licença MIT. Não é afiliado à ByteDance nem ao CapCut.",
       "iconURL": "https://matheusmeiraa.github.io/mangocut/icon.png",
       "tintColor": "#FF8A00",
       "category": "photo-video",

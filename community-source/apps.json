@@ -1,0 +1,40 @@
+{
+  "name": "MangoCUT",
+  "identifier": "com.mangocut.source",
+  "subtitle": "Editor de projetos de vídeo open source",
+  "description": "Fonte do MangoCUT para AltStore e SideStore. Os builds são compilados pelo GitHub Actions a partir do código aberto do repositório e publicados nos releases.",
+  "iconURL": "https://matheusmeiraa.github.io/mangocut/icon.png",
+  "website": "https://github.com/matheusmeiraa/mangocut",
+  "sourceURL": "https://matheusmeiraa.github.io/mangocut/apps.json",
+  "tintColor": "#FF8A00",
+  "featuredApps": ["com.mangocut.MangoCUT"],
+  "apps": [
+    {
+      "name": "MangoCUT",
+      "bundleIdentifier": "com.mangocut.MangoCUT",
+      "developerName": "Matheus Meira",
+      "subtitle": "Inspecione e repare projetos de vídeo",
+      "localizedDescription": "Abra arquivos draft_content.json ou draft_info.json, veja a duração real, as trilhas, os clipes e os keyframes, valide o projeto e aplique o motor de reparo (duração desatualizada, clipes sobrepostos e clipes em trilha errada). Exporte o projeto corrigido para usar em outro editor compatível.\n\nProjeto open source sob licença MIT. Não é afiliado à ByteDance nem ao CapCut.",
+      "iconURL": "https://matheusmeiraa.github.io/mangocut/icon.png",
+      "tintColor": "#FF8A00",
+      "category": "photo-video",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "buildVersion": "1",
+          "date": "2026-10-16T00:00:00Z",
+          "localizedDescription": "Primeira versão: abrir, inspecionar, reparar e exportar projetos.",
+          "downloadURL": "https://github.com/matheusmeiraa/mangocut/releases/download/v1.0.0/MangoCUT.ipa",
+          "size": 0,
+          "minOSVersion": "16.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}

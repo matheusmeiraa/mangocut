@@ -1,0 +1,48 @@
+# Projeto Xcode gerado com XcodeGen (https://github.com/yonaskolb/XcodeGen):
+#   npm run build:ios-engine && xcodegen generate --spec ios/project.yml
+# O .xcodeproj e o Info.plist são gerados e não são versionados.
+name: MangoCUT
+options:
+  bundleIdPrefix: com.mangocut
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+targets:
+  MangoCUT:
+    type: application
+    platform: iOS
+    # Gera um scheme compartilhado, usado pelo `xcodebuild -scheme MangoCUT` no CI
+    scheme: {}
+    sources:
+      - path: MangoCUT
+      # Motor TypeScript empacotado por `npm run build:ios-engine`
+      - path: Generated/mangocut-engine.js
+        buildPhase: resources
+    info:
+      path: Support/Info.plist
+      properties:
+        CFBundleDisplayName: MangoCUT
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mangocut.MangoCUT
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO

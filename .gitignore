@@ -1,0 +1,24 @@
+node_modules/
+dist/
+*.tgz
+
+# App de terceiros extraído para estudo (binário e assets da ByteDance).
+# Nunca deve ir para o repositório público nem para o pacote npm.
+app/
+*.ipa
+
+# Notas de engenharia reversa com trechos de desmontagem do binário original.
+# Ficam só na máquina local; o repositório público publica apenas a implementação.
+achados.md
+inventario.md
+RELATORIO.md
+
+.DS_Store
+
+# Gerados no build do app iOS
+ios/Generated/
+ios/*.xcodeproj/
+ios/Support/Info.plist
+build/
+Payload/
+_site/

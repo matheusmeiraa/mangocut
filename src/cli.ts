@@ -9,6 +9,7 @@ import {
   repairDraft,
   validateDraftJson,
 } from "./draft.ts";
+import { EditorError, buildRenderPlan, listEditorCommands, runEditorCommand } from "./editor.ts";
 import { Mp4ProbeError, probeMp4, type ByteSource, type Mp4VideoInfo } from "./mp4.ts";
 import { summarizeDraft, type DraftSummary } from "./summary.ts";
 import { microsecondsToSeconds } from "./time.ts";
@@ -30,6 +31,12 @@ Uso:
       Aplica o motor de reparo. Sem -o, grava <nome>.repaired.json ao lado do original.
   mangocut new --video <video.mp4> [-o draft.json] [--name <nome>] [--fps <n>] [--force] [--pretty]
       Cria um projeto com o vídeo na trilha principal (MP4, MOV ou M4V).
+  mangocut run <draft.json> <comando> ['{"param": valor}'] (-o saida.json | --in-place) [--pretty]
+      Executa um comando de edição (o mesmo que o app usa). Lista em "mangocut commands".
+  mangocut plan <draft.json>
+      Mostra o plano de render: clipes na ordem, transições, filtros, efeitos e textos.
+  mangocut commands
+      Lista os comandos de edição.
 
 Opções:
   -h, --help       Mostra esta ajuda
@@ -320,11 +327,76 @@ function cmdNew(args: string[]): number {
   return 0;
 }
 
+function cmdRun(args: string[]): number {
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      output: { type: "string", short: "o" },
+      "in-place": { type: "boolean" },
+      pretty: { type: "boolean" },
+    },
+  });
+  const [file, commandId, paramsText] = positionals;
+  if (!file || !commandId) {
+    throw new CliError("uso: mangocut run <draft.json> <comando> ['{...}'] (-o saida.json | --in-place)");
+  }
+  const out = values.output ?? (values["in-place"] ? file : undefined);
+  if (!out) throw new CliError("indique onde gravar: -o saida.json ou --in-place");
+
+  let params: unknown = {};
+  if (paramsText !== undefined) {
+    try {
+      params = JSON.parse(paramsText);
+    } catch (err) {
+      throw new CliError(`parâmetros não são JSON válido: ${(err as Error).message}`);
+    }
+  }
+  const { draft, validation } = loadDraft(file);
+  if (validation.fatalExceptionMessage) {
+    throw new CliError(`o projeto tem erro fatal de estrutura: ${validation.fatalExceptionMessage}`);
+  }
+
+  let edited: ReturnType<typeof runEditorCommand>;
+  try {
+    edited = runEditorCommand(draft, commandId, params);
+  } catch (err) {
+    if (err instanceof EditorError) throw new CliError(err.message);
+    throw err;
+  }
+  writeDraft(out, edited.draft, values.pretty ?? false);
+
+  console.log(`${commandId}: ok`);
+  for (const [key, value] of Object.entries(edited.result)) console.log(`  ${key}: ${value}`);
+  const plan = edited.plan;
+  console.log(
+    `Gravado: ${out} · ${duration(plan.durationUs)} · ${plural(plan.clips.length, "clipe")} · ${plural(plan.texts.length, "texto")}`,
+  );
+  return 0;
+}
+
+function cmdPlan(args: string[]): number {
+  const { positionals } = parseArgs({ args, allowPositionals: true, options: {} });
+  const file = positionals[0];
+  if (!file) throw new CliError("uso: mangocut plan <draft.json>");
+  const { draft } = loadDraft(file);
+  console.log(JSON.stringify(buildRenderPlan(draft), null, 2));
+  return 0;
+}
+
+function cmdCommands(): number {
+  for (const { id, label } of listEditorCommands()) console.log(`${id.padEnd(16)} ${label}`);
+  return 0;
+}
+
 const COMMANDS: Record<string, (args: string[]) => number> = {
   info: cmdInfo,
   validate: cmdValidate,
   repair: cmdRepair,
   new: cmdNew,
+  run: cmdRun,
+  plan: cmdPlan,
+  commands: cmdCommands,
 };
 
 export function main(argv: string[]): number {

@@ -30,6 +30,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
+        NSPhotoLibraryAddUsageDescription: O MangoCUT salva os vídeos exportados na sua Fototeca.
+        # Deixa os projetos visíveis no app Arquivos (No meu iPhone > MangoCUT)
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

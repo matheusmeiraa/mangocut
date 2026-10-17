@@ -4,7 +4,9 @@ import SwiftUI
 struct MangoCUTApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView(demo: DemoRequest.fromArguments())
+                .preferredColorScheme(.dark)
+                .tint(.mango)
         }
     }
 }

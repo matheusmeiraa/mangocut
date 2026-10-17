@@ -14,7 +14,7 @@ final class DraftViewModel: ObservableObject {
     private let engine: MangoEngine?
 
     init() {
-        switch Result(catching: { try MangoEngine() }) {
+        switch Result(catching: { try AppEngine.get() }) {
         case .success(let engine):
             self.engine = engine
         case .failure(let error):

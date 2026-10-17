@@ -264,6 +264,55 @@ export interface PersistentDraft {
   lyrics_effects?: unknown[];
   draft_type?: number;
   is_minimal_draft?: boolean;
+  /** Edições exclusivas do MangoCUT (filtros, efeitos, transições e textos). */
+  mangocut?: MangoCutExtension;
+}
+
+export type FilterId = "noir" | "vintage" | "warm" | "cool" | "vivid" | "contrast";
+export type EffectId = "zoomIn" | "zoomOut" | "fadeIn" | "fadeOut" | "blur";
+export type TextFont = "system" | "rounded" | "serif" | "mono";
+
+export interface ClipFilter {
+  id: FilterId;
+  /** 0 = sem efeito, 1 = filtro completo. */
+  intensity: number;
+}
+
+export interface ClipStyle {
+  filter: ClipFilter | null;
+  effects: EffectId[];
+}
+
+export interface Transition {
+  kind: "dissolve";
+  durationUs: Microseconds;
+}
+
+export interface TextOverlay {
+  id: string;
+  text: string;
+  /** Início no tempo da timeline (o que se vê no player), em µs. */
+  startUs: Microseconds;
+  durationUs: Microseconds;
+  font: TextFont;
+  /** Altura da fonte como fração da altura do canvas. */
+  size: number;
+  /** `#RRGGBB` */
+  color: string;
+  /** Centro do texto, de 0 a 1 a partir do canto superior esquerdo. */
+  x: number;
+  y: number;
+  background: boolean;
+}
+
+/**
+ * Bloco `mangocut` do draft. As transições ficam indexadas pelo clipe que vem antes delas.
+ */
+export interface MangoCutExtension {
+  version: 1;
+  clipStyles: Record<string, ClipStyle>;
+  transitions: Record<string, Transition>;
+  texts: TextOverlay[];
 }
 
 /**

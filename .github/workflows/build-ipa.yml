@@ -94,6 +94,62 @@ jobs:
           path: MangoCUT.ipa
           if-no-files-found: error
 
+  screenshots:
+    name: Screenshots no simulador
+    needs: engine
+    if: github.event_name != 'pull_request'
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Empacotar o motor para o JavaScriptCore
+        run: npm run build:ios-engine
+
+      - name: Gerar o projeto Xcode
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec ios/project.yml
+
+      - name: Compilar para o simulador
+        run: |
+          xcodebuild build \
+            -project ios/MangoCUT.xcodeproj \
+            -scheme MangoCUT \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Abrir o app em cada tela e fotografar
+        run: scripts/simulator-screenshots.sh build-sim/Build/Products/Debug-iphonesimulator/MangoCUT.app shots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots
+          if-no-files-found: error
+
+      # Publica as imagens numa branch própria para serem vistas sem baixar artefatos.
+      - name: Publicar na branch ci-screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd shots
+          git init -q -b ci-screenshots
+          git add .
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -qm "Screenshots de ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots
+
   release:
     name: Release e fonte AltStore/SideStore
     if: startsWith(github.ref, 'refs/tags/v')

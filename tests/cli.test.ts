@@ -219,3 +219,32 @@ test("CLI: erros de uso e arquivos inválidos", () => {
   assert.equal(cli("info", "--opcao-errada").status, 1);
   assert.equal(cli("--help").status, 0);
 });
+
+test("CLI: run aplica comandos de edição e plan mostra o resultado", () => {
+  const dir = tmpDir();
+  const video = path.join(dir, "clipe.mp4");
+  const draftFile = path.join(dir, "draft_content.json");
+  fs.writeFileSync(video, makeMp4());
+  assert.equal(cli("new", "--video", video, "-o", draftFile).status, 0);
+
+  assert.equal(cli("run", draftFile, "clip.split", '{"atUs":2000000}').status, 1, "sem -o nem --in-place");
+  const split = cli("run", draftFile, "clip.split", '{"atUs":2000000}', "--in-place");
+  assert.equal(split.status, 0, split.stderr);
+  assert.match(split.stdout, /segmentId: [0-9A-F-]{36}/);
+
+  const added = cli("run", draftFile, "text.add", '{"text":"Oi","startUs":500000}', "-o", draftFile);
+  assert.equal(added.status, 0, added.stderr);
+
+  const plan = JSON.parse(cli("plan", draftFile).stdout);
+  assert.equal(plan.clips.length, 2);
+  assert.equal(plan.clips[1].timelineStartUs, 2_000_000);
+  assert.equal(plan.durationUs, 5_000_000);
+  assert.equal(plan.texts[0].text, "Oi");
+  assert.equal(cli("validate", draftFile).status, 0);
+
+  const bad = cli("run", draftFile, "clip.speed", '{"segmentId":"x","speed":2}', "--in-place");
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /clipe não encontrado/);
+  assert.equal(cli("run", draftFile, "clip.split", "{quebrado", "--in-place").status, 1);
+  assert.match(cli("commands").stdout, /clip\.transition/);
+});

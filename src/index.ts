@@ -4,3 +4,4 @@ export * from "./bezier.ts";
 export * from "./draft.ts";
 export * from "./mp4.ts";
 export * from "./summary.ts";
+export * from "./editor.ts";

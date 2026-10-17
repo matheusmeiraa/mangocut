@@ -1,16 +1,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct ContentView: View {
+/// Inspetor de drafts: abre um draft_content.json ou draft_info.json de qualquer editor compatível,
+/// mostra a timeline e a validação, repara e exporta o JSON.
+struct InspectorView: View {
     @StateObject private var model = DraftViewModel()
     @State private var isImporting = false
     @State private var isExporting = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle(model.title)
                 .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Fechar") { dismiss() }
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             isImporting = true

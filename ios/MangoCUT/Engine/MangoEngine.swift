@@ -48,6 +48,17 @@ final class MangoEngine {
           draftJSON: JSON.stringify(fixed),
         });
       },
+      plan(text) {
+        return JSON.stringify(MangoCUT.buildRenderPlan(JSON.parse(text)));
+      },
+      run(text, commandId, params) {
+        const out = MangoCUT.runEditorCommand(JSON.parse(text), commandId, JSON.parse(params));
+        return JSON.stringify({ draftJSON: JSON.stringify(out.draft), plan: out.plan, result: out.result });
+      },
+      create(params) {
+        const draft = MangoCUT.createEditorProject(JSON.parse(params));
+        return JSON.stringify({ draftJSON: JSON.stringify(draft), plan: MangoCUT.buildRenderPlan(draft), result: {} });
+      },
     };
     """
 
@@ -84,6 +95,27 @@ final class MangoEngine {
         try decode(RepairOutcome.self, from: callBridge("repair", json))
     }
 
+    /// Plano de render do draft: clipes na ordem, transições, filtros, efeitos e textos.
+    func plan(json: String) throws -> RenderPlan {
+        try decode(RenderPlan.self, from: callBridge("plan", json))
+    }
+
+    /// Executa um comando de edição de `src/editor.ts` sobre uma cópia do draft.
+    func run(_ commandId: String, on json: String, params: [String: Any] = [:]) throws -> EditOutcome {
+        try decode(EditOutcome.self, from: callBridge("run", json, commandId, try Self.json(params)))
+    }
+
+    /// Projeto novo do editor, já com a trilha principal.
+    func createProject(name: String, width: Int, height: Int, fps: Int = 30) throws -> EditOutcome {
+        let params: [String: Any] = ["name": name, "width": width, "height": height, "fps": fps]
+        return try decode(EditOutcome.self, from: callBridge("create", try Self.json(params)))
+    }
+
+    private static func json(_ object: [String: Any]) throws -> String {
+        let data = try JSONSerialization.data(withJSONObject: object)
+        return String(decoding: data, as: UTF8.self)
+    }
+
     private func evaluate(_ script: String, sourceURL: URL? = nil) throws {
         lastException = nil
         if let sourceURL {
@@ -94,10 +126,14 @@ final class MangoEngine {
         if let message = lastException { throw MangoEngineError.javascript(message) }
     }
 
-    private func callBridge(_ method: String, _ argument: String) throws -> String {
+    private func callBridge(_ method: String, _ arguments: String...) throws -> String {
         lastException = nil
-        let result = context.objectForKeyedSubscript("MangoBridge")?.invokeMethod(method, withArguments: [argument])
-        if let message = lastException { throw MangoEngineError.javascript(message) }
+        let result = context.objectForKeyedSubscript("MangoBridge")?.invokeMethod(method, withArguments: arguments)
+        if let message = lastException {
+            // Erros de edição já vêm com a mensagem pronta para o usuário.
+            let prefix = "EditorError: "
+            throw MangoEngineError.javascript(message.hasPrefix(prefix) ? String(message.dropFirst(prefix.count)) : message)
+        }
         guard let result, result.isString, let text = result.toString() else {
             throw MangoEngineError.javascript("resposta inesperada do motor em \(method)")
         }

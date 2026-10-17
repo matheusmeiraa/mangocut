@@ -32,7 +32,9 @@
       ],
       "appPermissions": {
         "entitlements": [],
-        "privacy": {}
+        "privacy": {
+          "NSPhotoLibraryAddUsageDescription": "O MangoCUT salva os vídeos exportados na sua Fototeca."
+        }
       }
     }
   ],

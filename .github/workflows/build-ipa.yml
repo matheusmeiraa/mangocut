@@ -185,6 +185,10 @@ jobs:
           OWNER_LC="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           # Mantém as versões já publicadas (na primeira publicação o arquivo ainda não existe).
           curl -fsSL "https://${OWNER_LC}.github.io/${GITHUB_REPOSITORY#*/}/apps.json" -o previous.json || rm -f previous.json
+          # Permissões de privacidade que o app realmente pede, lidas do Info.plist do .ipa
+          unzip -p MangoCUT.ipa 'Payload/MangoCUT.app/Info.plist' > Info.plist
+          python3 -c 'import json, plistlib; info = plistlib.load(open("Info.plist", "rb")); print(json.dumps({k: v for k, v in info.items() if k.startswith("NS") and k.endswith("UsageDescription")}))' > privacy.json
+          cat privacy.json
           node scripts/update-source.mjs \
             --repo "$GITHUB_REPOSITORY" \
             --version "$VERSION" \
@@ -192,6 +196,7 @@ jobs:
             --tag "$GITHUB_REF_NAME" \
             --ipa MangoCUT.ipa \
             --previous previous.json \
+            --privacy privacy.json \
             --out _site
 
       - uses: actions/configure-pages@v5

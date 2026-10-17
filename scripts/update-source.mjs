@@ -3,8 +3,11 @@
 // troca o OWNER/mangocut de exemplo pelo repositório real, adiciona a versão recém-publicada (tamanho real
 // do .ipa) e mantém as versões que já estavam publicadas.
 //
+// O AltStore recusa instalar se o app pedir uma permissão de privacidade que a fonte não declara. Com
+// --privacy, as permissões (NS...UsageDescription) lidas do Info.plist do .ipa entram em appPermissions.
+//
 // node scripts/update-source.mjs --repo dono/mangocut --version 1.2.0 --build 42 --tag v1.2.0 \
-//   --ipa MangoCUT.ipa --out _site [--previous apps-publicado.json] [--notes "Novidades"]
+//   --ipa MangoCUT.ipa --out _site [--previous apps-publicado.json] [--privacy privacidade.json] [--notes "..."]
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
@@ -21,6 +24,7 @@ const { values } = parseArgs({
     ipa: { type: "string" },
     out: { type: "string" },
     previous: { type: "string" },
+    privacy: { type: "string" },
     notes: { type: "string" },
   },
 });
@@ -68,6 +72,12 @@ if (values.previous && existsSync(values.previous)) {
   }
 }
 
+if (values.privacy) {
+  const fromIpa = JSON.parse(readFileSync(values.privacy, "utf-8"));
+  app.appPermissions = app.appPermissions ?? { entitlements: [], privacy: {} };
+  app.appPermissions.privacy = { ...(app.appPermissions.privacy ?? {}), ...fromIpa };
+}
+
 app.versions = [release, ...published].slice(0, MAX_VERSIONS);
 // Campos da versão atual no nível do app, para clientes AltStore/SideStore mais antigos.
 app.version = release.version;
@@ -83,3 +93,4 @@ copyFileSync(path.join(root, "community-source/icon.png"), path.join(values.out,
 console.log(`Fonte gerada: ${path.join(values.out, "apps.json")}`);
 console.log(`  ${app.versions.length} versão(ões), atual ${release.version} (${release.size} bytes)`);
 console.log(`  URL da fonte: ${source.sourceURL}`);
+console.log(`  Permissões declaradas: ${Object.keys(app.appPermissions?.privacy ?? {}).join(", ") || "nenhuma"}`);

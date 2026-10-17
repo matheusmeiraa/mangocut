@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 struct ProjectInfo: Identifiable, Hashable {
@@ -16,6 +17,15 @@ struct ProjectInfo: Identifiable, Hashable {
         guard !clip.path.isEmpty else { return nil }
         let url = clip.path.hasPrefix("/") ? URL(fileURLWithPath: clip.path) : folder.appendingPathComponent(clip.path)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    func thumbnail() async -> CGImage? {
+        guard let clips = try? FileManager.default.contentsOfDirectory(at: mediaFolder, includingPropertiesForKeys: nil) else { return nil }
+        guard let first = clips.first(where: { ["mp4", "mov", "m4v"].contains($0.pathExtension.lowercased()) }) else { return nil }
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: first))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 320, height: 320)
+        return try? await generator.image(at: .zero).image
     }
 }
 
@@ -117,6 +127,15 @@ final class ProjectStore: ObservableObject {
 
     func delete(_ project: ProjectInfo) {
         try? FileManager.default.removeItem(at: project.folder)
+        reload()
+    }
+
+    func rename(_ project: ProjectInfo, to newName: String) {
+        guard let engine = try? AppEngine.get(),
+              let json = try? String(contentsOf: project.draftURL, encoding: .utf8),
+              let outcome = try? engine.run("project.rename", on: json, params: ["name": newName])
+        else { return }
+        try? outcome.draftJSON.write(to: project.draftURL, atomically: true, encoding: .utf8)
         reload()
     }
 

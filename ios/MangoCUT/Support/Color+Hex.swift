@@ -12,6 +12,14 @@ extension Color {
     }
 
     static let mango = Color(hex: "#FF8A00")
+    static let capcutDark = Color(hex: "#0E0E12")
+    static let capcutBar = Color(hex: "#15151C")
+    static let capcutCard = Color(hex: "#1D1D26")
+    static let capcutCardHover = Color(hex: "#262632")
+    static let capcutBorder = Color(hex: "#2A2A36")
+    static let capcutCyan = Color(hex: "#00F0FF")
+    static let capcutYellow = Color(hex: "#FFD60A")
+    static let capcutPurple = Color(hex: "#AF52DE")
 }
 
 extension Double {

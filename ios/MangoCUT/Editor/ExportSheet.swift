@@ -17,85 +17,17 @@ struct ExportSheet: View {
         case failed(String)
     }
 
+    private var renderSize: CGSize {
+        Exporter.renderSize(for: model.plan, shortSide: shortSide)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section("Qualidade e Resolução") {
-                    Picker("Resolução", selection: $shortSide) {
-                        Text("720p (HD)").tag(720)
-                        Text("1080p (Full HD)").tag(1080)
-                        Text("4K (Ultra HD)").tag(2160)
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(phase == .exporting)
-
-                    let size = Exporter.renderSize(for: model.plan, shortSide: shortSide)
-                    LabeledContent("Dimensões", value: "\(Int(size.width))×\(Int(size.height))")
-                    LabeledContent("Duração", value: TimeFormat.clock(model.plan.durationUs))
-                }
-
-                Section("Codec de Vídeo") {
-                    Picker("Formato", selection: $codec) {
-                        ForEach(Exporter.Codec.allCases) { item in
-                            Text(item.displayName).tag(item)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(phase == .exporting)
-                } footer: {
-                    Text(codec == .hevc ? "HEVC economiza até 50% de espaço com alta fidelidade visual no iPhone." : "H.264 tem compatibilidade máxima com computadores e navegadores antigos.")
-                }
-
-                Section {
-                    switch phase {
-                    case .idle:
-                        Button {
-                            start()
-                        } label: {
-                            Label("Exportar vídeo agora", systemImage: "film")
-                                .font(.headline)
-                        }
-                    case .exporting:
-                        VStack(alignment: .leading, spacing: 8) {
-                            ProgressView(value: progress) {
-                                HStack {
-                                    Text("Renderizando…")
-                                    Spacer()
-                                    Text("\(Int(progress * 100))%")
-                                        .font(.caption.monospacedDigit())
-                                }
-                            }
-                            Text("Processando efeitos, shaders e IA nativa…")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                    case .done(let url):
-                        Label("Vídeo exportado com sucesso!", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Button {
-                            saveToPhotos(url)
-                        } label: {
-                            Label(savedToPhotos ? "Salvo na Fototeca" : "Salvar na Fototeca", systemImage: "photo.on.rectangle")
-                        }
-                        .disabled(savedToPhotos)
-                        ShareLink(item: url) {
-                            Label("Compartilhar", systemImage: "square.and.arrow.up")
-                        }
-                        if let photosMessage {
-                            Text(photosMessage).font(.footnote).foregroundStyle(.secondary)
-                        }
-                    case .failed(let message):
-                        Text(message).foregroundStyle(.red)
-                        Button("Tentar de novo") { start() }
-                    }
-                }
-
-                if !model.plan.warnings.isEmpty {
-                    Section("Avisos") {
-                        ForEach(model.plan.warnings, id: \.self) { Text($0).font(.footnote) }
-                    }
-                }
+                qualitySection
+                codecSection
+                actionSection
+                warningsSection
             }
             .navigationTitle("Exportar Vídeo")
             .toolbar {
@@ -103,6 +35,94 @@ struct ExportSheet: View {
                     Button("Fechar") { model.sheet = nil }
                         .disabled(phase == .exporting)
                 }
+            }
+        }
+    }
+
+    private var qualitySection: some View {
+        Section("Qualidade e Resolução") {
+            Picker("Resolução", selection: $shortSide) {
+                Text("720p (HD)").tag(720)
+                Text("1080p (Full HD)").tag(1080)
+                Text("4K (Ultra HD)").tag(2160)
+            }
+            .pickerStyle(.segmented)
+            .disabled(phase == .exporting)
+
+            LabeledContent("Dimensões", value: "\(Int(renderSize.width))×\(Int(renderSize.height))")
+            LabeledContent("Duração", value: TimeFormat.clock(model.plan.durationUs))
+        }
+    }
+
+    private var codecSection: some View {
+        Section {
+            Picker("Formato", selection: $codec) {
+                ForEach(Exporter.Codec.allCases) { item in
+                    Text(item.displayName).tag(item)
+                }
+            }
+            .pickerStyle(.segmented)
+            .disabled(phase == .exporting)
+        } header: {
+            Text("Codec de Vídeo")
+        } footer: {
+            Text(codec == .hevc ? "HEVC economiza até 50% de espaço com alta fidelidade visual no iPhone." : "H.264 tem compatibilidade máxima com computadores e navegadores antigos.")
+        }
+    }
+
+    @ViewBuilder
+    private var actionSection: some View {
+        Section {
+            switch phase {
+            case .idle:
+                Button {
+                    start()
+                } label: {
+                    Label("Exportar vídeo agora", systemImage: "film")
+                        .font(.headline)
+                }
+            case .exporting:
+                VStack(alignment: .leading, spacing: 8) {
+                    ProgressView(value: progress) {
+                        HStack {
+                            Text("Renderizando…")
+                            Spacer()
+                            Text("\(Int(progress * 100))%")
+                                .font(.caption.monospacedDigit())
+                        }
+                    }
+                    Text("Processando efeitos, shaders e IA nativa…")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            case .done(let url):
+                Label("Vídeo exportado com sucesso!", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Button {
+                    saveToPhotos(url)
+                } label: {
+                    Label(savedToPhotos ? "Salvo na Fototeca" : "Salvar na Fototeca", systemImage: "photo.on.rectangle")
+                }
+                .disabled(savedToPhotos)
+                ShareLink(item: url) {
+                    Label("Compartilhar", systemImage: "square.and.arrow.up")
+                }
+                if let photosMessage {
+                    Text(photosMessage).font(.footnote).foregroundStyle(.secondary)
+                }
+            case .failed(let message):
+                Text(message).foregroundStyle(.red)
+                Button("Tentar de novo") { start() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var warningsSection: some View {
+        if !model.plan.warnings.isEmpty {
+            Section("Avisos") {
+                ForEach(model.plan.warnings, id: \.self) { Text($0).font(.footnote) }
             }
         }
     }

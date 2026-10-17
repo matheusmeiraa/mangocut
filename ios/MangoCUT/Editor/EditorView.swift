@@ -144,27 +144,31 @@ struct EditorView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
                 if let clip = model.selectedClip {
-                    ToolButton(title: "Dividir", systemImage: "scissors") { model.split() }
-                    ToolButton(title: "Aparar início", systemImage: "arrow.right.to.line") { model.trim("start") }
-                    ToolButton(title: "Aparar fim", systemImage: "arrow.left.to.line") { model.trim("end") }
-                    ToolButton(title: "Estúdio IA", systemImage: "wand.and.stars") { model.sheet = .aiStudio }
-                    ToolButton(title: "Velocidade", systemImage: "speedometer") { model.sheet = .speed }
-                    ToolButton(title: "Filtros", systemImage: "camera.filters") { model.sheet = .filters }
-                    ToolButton(title: "Efeitos", systemImage: "sparkles") { model.sheet = .effects }
-                    ToolButton(
-                        title: "Transição",
-                        systemImage: "square.on.square",
-                        disabled: clip.segmentId == model.plan.clips.last?.segmentId
-                    ) { model.sheet = .transition }
-                    ToolButton(title: "Para trás", systemImage: "arrow.left", disabled: model.selectedClipIndex == 0) {
-                        model.move(by: -1)
+                    Group {
+                        ToolButton(title: "Dividir", systemImage: "scissors") { model.split() }
+                        ToolButton(title: "Aparar início", systemImage: "arrow.right.to.line") { model.trim("start") }
+                        ToolButton(title: "Aparar fim", systemImage: "arrow.left.to.line") { model.trim("end") }
+                        ToolButton(title: "Estúdio IA", systemImage: "wand.and.stars") { model.sheet = .aiStudio }
+                        ToolButton(title: "Velocidade", systemImage: "speedometer") { model.sheet = .speed }
+                        ToolButton(title: "Filtros", systemImage: "camera.filters") { model.sheet = .filters }
                     }
-                    ToolButton(
-                        title: "Para frente",
-                        systemImage: "arrow.right",
-                        disabled: model.selectedClipIndex == model.plan.clips.count - 1
-                    ) { model.move(by: 1) }
-                    ToolButton(title: "Excluir", systemImage: "trash") { model.deleteSelection() }
+                    Group {
+                        ToolButton(title: "Efeitos", systemImage: "sparkles") { model.sheet = .effects }
+                        ToolButton(
+                            title: "Transição",
+                            systemImage: "square.on.square",
+                            disabled: clip.segmentId == model.plan.clips.last?.segmentId
+                        ) { model.sheet = .transition }
+                        ToolButton(title: "Para trás", systemImage: "arrow.left", disabled: model.selectedClipIndex == 0) {
+                            model.move(by: -1)
+                        }
+                        ToolButton(
+                            title: "Para frente",
+                            systemImage: "arrow.right",
+                            disabled: model.selectedClipIndex == model.plan.clips.count - 1
+                        ) { model.move(by: 1) }
+                        ToolButton(title: "Excluir", systemImage: "trash") { model.deleteSelection() }
+                    }
                 } else if model.selectedText != nil {
                     ToolButton(title: "Editar", systemImage: "pencil") { model.sheet = .text }
                     ToolButton(title: "Excluir", systemImage: "trash") { model.deleteSelection() }

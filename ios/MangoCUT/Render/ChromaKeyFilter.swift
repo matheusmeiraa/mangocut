@@ -40,9 +40,9 @@ enum ChromaKeyFilter {
                     let hueDiff = min(abs(h - targetHue), 360 - abs(h - targetHue))
 
                     var alpha: Float = 1.0
-                    var outR = red
+                    let outR = red
                     var outG = green
-                    var outB = blue
+                    let outB = blue
 
                     if hueDiff < hueTolerance && s > 0.25 {
                         let factor = hueDiff / hueTolerance

@@ -7,7 +7,7 @@ enum EditorSelection: Hashable {
 }
 
 enum EditorSheet: String, Identifiable {
-    case filters, effects, speed, transition, text, export
+    case filters, effects, speed, transition, text, export, aiStudio, templates
     var id: String { rawValue }
 }
 
@@ -178,6 +178,19 @@ final class EditorModel: ObservableObject {
 
     func rename(_ newName: String) {
         run("project.rename", ["name": newName])
+    }
+
+    func applyTemplate(id: String) {
+        run("template.apply", ["templateId": id])
+    }
+
+    func setCaptions(_ captions: [AISpeechCaptioner.Caption]) {
+        let serialized: [[String: Any]] = captions.map { [
+            "text": $0.text,
+            "startUs": $0.startUs,
+            "durationUs": $0.durationUs,
+        ] }
+        run("captions.set", ["captions": serialized])
     }
 
     func addMedia(_ urls: [URL]) async {

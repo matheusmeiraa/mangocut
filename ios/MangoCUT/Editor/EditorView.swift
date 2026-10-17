@@ -147,6 +147,7 @@ struct EditorView: View {
                     ToolButton(title: "Dividir", systemImage: "scissors") { model.split() }
                     ToolButton(title: "Aparar início", systemImage: "arrow.right.to.line") { model.trim("start") }
                     ToolButton(title: "Aparar fim", systemImage: "arrow.left.to.line") { model.trim("end") }
+                    ToolButton(title: "Estúdio IA", systemImage: "wand.and.stars") { model.sheet = .aiStudio }
                     ToolButton(title: "Velocidade", systemImage: "speedometer") { model.sheet = .speed }
                     ToolButton(title: "Filtros", systemImage: "camera.filters") { model.sheet = .filters }
                     ToolButton(title: "Efeitos", systemImage: "sparkles") { model.sheet = .effects }
@@ -172,6 +173,8 @@ struct EditorView: View {
                         ToolLabel(title: "Mídia", systemImage: "plus.rectangle.on.rectangle")
                     }
                     .buttonStyle(.plain)
+                    ToolButton(title: "Estúdio IA", systemImage: "wand.and.stars") { model.sheet = .aiStudio }
+                    ToolButton(title: "Templates", systemImage: "rectangle.3.group") { model.sheet = .templates }
                     ToolButton(title: "Texto", systemImage: "textformat") { model.addText() }
                     ToolButton(title: "Ajustar", systemImage: "arrow.left.and.right") { fitTimeline() }
                 }
@@ -191,6 +194,8 @@ struct EditorView: View {
         case .transition: TransitionSheet(model: model)
         case .text: TextSheet(model: model)
         case .export: ExportSheet(model: model)
+        case .aiStudio: AIStudioSheet(model: model)
+        case .templates: TemplatesSheet(model: model)
         }
     }
 

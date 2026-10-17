@@ -16,7 +16,7 @@
       "bundleIdentifier": "com.mangocut.MangoCUT",
       "developerName": "Matheus Meira",
       "subtitle": "Editor de vídeo open source",
-      "localizedDescription": "Monte vídeos no iPhone: escolha clipes da Fototeca, divida, apare, mude a ordem e a velocidade, aplique filtros (P&B, Vintage, Quente, Frio, Vívido, Contraste), efeitos (zoom, surgir e sumir no preto, desfoque), a transição de dissolver e textos. Exporte em MP4 720p ou 1080p para a Fototeca.\n\nOs projetos são salvos em draft_content.json, compatível com a família CapCut em cortes, ordem e velocidade. O app também inspeciona e repara drafts de outros editores.\n\nProjeto open source sob licença MIT. Não é afiliado à ByteDance nem ao CapCut.",
+      "localizedDescription": "Editor de vídeo profissional open source no iPhone: escolha clipes da Fototeca, divida, apare, ajuste velocidade (0.25x a 4x) e use o Estúdio de IA (Legendas automáticas offline com Speech e Recorte de Pessoa/Desfoque de Retrato com Vision). Aplique filtros cinemáticos (Teal & Orange, Cyberpunk, VHS 90s, Noir Drama, P&B, Vintage), shaders e efeitos visuais (glitch RGB, película 35mm, glow bloom, vinheta, zoom) e transições dinâmicas (dissolver, deslizar, zoom, flash). Inclui templates criativos de 1 toque (TikTok, Cinema, Retrô, Cyberpunk) e exportação em MP4 4K, 1080p ou 720p com codec HEVC (H.265) ou H.264 para a Fototeca.\n\n100% livre de telemetria, anúncios e rastreadores comerciais (ultra leve e seguro). Projetos salvos no formato draft_content.json compatível com a família CapCut.\n\nProjeto open source sob licença MIT. Não é afiliado à ByteDance nem ao CapCut.",
       "iconURL": "https://matheusmeiraa.github.io/mangocut/icon.png",
       "tintColor": "#FF8A00",
       "category": "photo-video",
@@ -35,7 +35,9 @@
       "appPermissions": {
         "entitlements": [],
         "privacy": {
-          "NSPhotoLibraryAddUsageDescription": "O MangoCUT salva os vídeos exportados na sua Fototeca."
+          "NSPhotoLibraryAddUsageDescription": "O MangoCUT salva os vídeos exportados na sua Fototeca.",
+          "NSSpeechRecognitionUsageDescription": "O MangoCUT transcreve áudio localmente para gerar legendas automáticas com inteligência artificial.",
+          "NSMicrophoneUsageDescription": "O MangoCUT analisa o áudio dos vídeos para reconhecimento de fala e efeitos de voz."
         }
       }
     }

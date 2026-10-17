@@ -4,6 +4,7 @@ import SwiftUI
 struct ExportSheet: View {
     @ObservedObject var model: EditorModel
     @State private var shortSide = 1080
+    @State private var codec = Exporter.Codec.hevc
     @State private var progress = 0.0
     @State private var phase = Phase.idle
     @State private var savedToPhotos = false
@@ -19,16 +20,30 @@ struct ExportSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Resolução") {
+                Section("Qualidade e Resolução") {
                     Picker("Resolução", selection: $shortSide) {
-                        Text("720p").tag(720)
-                        Text("1080p").tag(1080)
+                        Text("720p (HD)").tag(720)
+                        Text("1080p (Full HD)").tag(1080)
+                        Text("4K (Ultra HD)").tag(2160)
                     }
                     .pickerStyle(.segmented)
                     .disabled(phase == .exporting)
+
                     let size = Exporter.renderSize(for: model.plan, shortSide: shortSide)
-                    LabeledContent("Tamanho", value: "\(Int(size.width))×\(Int(size.height))")
+                    LabeledContent("Dimensões", value: "\(Int(size.width))×\(Int(size.height))")
                     LabeledContent("Duração", value: TimeFormat.clock(model.plan.durationUs))
+                }
+
+                Section("Codec de Vídeo") {
+                    Picker("Formato", selection: $codec) {
+                        ForEach(Exporter.Codec.allCases) { item in
+                            Text(item.displayName).tag(item)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(phase == .exporting)
+                } footer: {
+                    Text(codec == .hevc ? "HEVC economiza até 50% de espaço com alta fidelidade visual no iPhone." : "H.264 tem compatibilidade máxima com computadores e navegadores antigos.")
                 }
 
                 Section {
@@ -37,14 +52,26 @@ struct ExportSheet: View {
                         Button {
                             start()
                         } label: {
-                            Label("Exportar vídeo", systemImage: "film")
+                            Label("Exportar vídeo agora", systemImage: "film")
+                                .font(.headline)
                         }
                     case .exporting:
-                        ProgressView(value: progress) {
-                            Text("Renderizando… \(Int(progress * 100))%")
+                        VStack(alignment: .leading, spacing: 8) {
+                            ProgressView(value: progress) {
+                                HStack {
+                                    Text("Renderizando…")
+                                    Spacer()
+                                    Text("\(Int(progress * 100))%")
+                                        .font(.caption.monospacedDigit())
+                                }
+                            }
+                            Text("Processando efeitos, shaders e IA nativa…")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
+                        .padding(.vertical, 4)
                     case .done(let url):
-                        Label("Vídeo pronto", systemImage: "checkmark.circle.fill")
+                        Label("Vídeo exportado com sucesso!", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                         Button {
                             saveToPhotos(url)
@@ -70,7 +97,7 @@ struct ExportSheet: View {
                     }
                 }
             }
-            .navigationTitle("Exportar")
+            .navigationTitle("Exportar Vídeo")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fechar") { model.sheet = nil }
@@ -88,11 +115,18 @@ struct ExportSheet: View {
         let plan = model.plan
         let project = model.project
         let side = shortSide
+        let selectedCodec = codec
         let fileName = model.name.replacingOccurrences(of: "/", with: "-")
         Task {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileName).mp4")
             do {
-                try await Exporter.export(plan: plan, resolve: project.resolve, shortSide: side, to: url) { value in
+                try await Exporter.export(
+                    plan: plan,
+                    resolve: project.resolve,
+                    shortSide: side,
+                    codec: selectedCodec,
+                    to: url
+                ) { value in
                     Task { @MainActor in progress = value }
                 }
                 phase = .done(url)

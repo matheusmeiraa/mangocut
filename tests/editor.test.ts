@@ -194,3 +194,43 @@ test("drafts sem bloco mangocut e com trilhas extras geram plano com aviso", () 
   assert.equal(plan.clips[0]!.filter, null);
   assert.match(plan.warnings[0]!, /1 trilha\(s\) além da principal/);
 });
+
+test("template.apply aplica estilos, filtros e transições completas", () => {
+  const { draft } = twoClips();
+  const cinematic = run(draft, "template.apply", { templateId: "cinematic" });
+  assert.equal(cinematic.plan.canvas.width, 1920);
+  assert.equal(cinematic.plan.canvas.height, 1080);
+  assert.equal(cinematic.plan.clips[0]!.filter?.id, "tealOrange");
+  assert.ok(cinematic.plan.clips[0]!.effects.includes("fadeIn"));
+  assert.ok(cinematic.plan.clips[1]!.effects.includes("fadeOut"));
+  assert.equal(cinematic.plan.clips[0]!.transitionOut?.kind, "dissolve");
+
+  const tiktok = run(draft, "template.apply", { templateId: "tiktok" });
+  assert.equal(tiktok.plan.canvas.width, 1080);
+  assert.equal(tiktok.plan.canvas.height, 1920);
+  assert.equal(tiktok.plan.clips[0]!.filter?.id, "vivid");
+  assert.ok(tiktok.plan.clips[0]!.effects.includes("zoomIn"));
+  assert.ok(tiktok.plan.clips[1]!.effects.includes("zoomOut"));
+
+  assert.throws(() => runEditorCommand(draft, "template.apply", { templateId: "desconhecido" }), /template desconhecido/);
+});
+
+test("captions.set define legendas com IA e novos efeitos", () => {
+  const { draft, a } = twoClips();
+  const withCaptions = run(draft, "captions.set", {
+    captions: [
+      { text: "Primeira frase", startUs: s(0.5), durationUs: s(2) },
+      { text: "Segunda frase", startUs: s(3), durationUs: s(1.5) },
+    ],
+  });
+  assert.equal(withCaptions.plan.texts.length, 2);
+  assert.equal(withCaptions.plan.texts[0]!.text, "Primeira frase");
+  assert.equal(withCaptions.plan.texts[1]!.startUs, s(3));
+
+  const withAiEffects = run(draft, "clip.effects", {
+    segmentId: a,
+    effects: ["aiCutout", "portraitBlur", "glitch", "filmGrain"],
+  });
+  assert.deepEqual(withAiEffects.plan.clips[0]!.effects, ["aiCutout", "portraitBlur", "glitch", "filmGrain"]);
+});
+

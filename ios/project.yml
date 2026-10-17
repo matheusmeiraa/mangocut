@@ -9,8 +9,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: "4"
     SWIFT_VERSION: "5.0"
 targets:
   MangoCUT:
@@ -31,6 +31,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         NSPhotoLibraryAddUsageDescription: O MangoCUT salva os vídeos exportados na sua Fototeca.
+        NSSpeechRecognitionUsageDescription: O MangoCUT transcreve áudio localmente para gerar legendas automáticas com inteligência artificial.
+        NSMicrophoneUsageDescription: O MangoCUT analisa o áudio dos vídeos para reconhecimento de fala e efeitos de voz.
         # Deixa os projetos visíveis no app Arquivos (No meu iPhone > MangoCUT)
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true

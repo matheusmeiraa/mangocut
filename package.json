@@ -1,6 +1,6 @@
 {
   "name": "mangocut",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Motor de timeline open source em TypeScript: lê, valida, repara e gera projetos no formato draft_content.json / draft_info.json da família CapCut, com interpolação de keyframes Bézier cúbica em float32",
   "keywords": [
     "video-editor",

@@ -1,7 +1,8 @@
 import CoreImage
 
-/// Monta um quadro do vídeo: encaixa cada clipe no canvas, aplica efeitos e filtro, faz a
-/// transição entre dois clipes e desenha os textos por cima. O mesmo código serve ao player e à exportação.
+/// Monta um quadro do vídeo: encaixa cada clipe no canvas, aplica efeitos avançados e filtros,
+/// faz a transição entre dois clipes (dissolve, slide, zoom, flash) e desenha os textos por cima.
+/// O mesmo código serve ao player e à exportação.
 enum FrameRenderer {
     struct Layer {
         let clip: RenderPlan.Clip
@@ -30,15 +31,8 @@ enum FrameRenderer {
             let incoming = layers[1].clip
             let length = max(incoming.transitionIn?.durationUs ?? 1, 1)
             let progress = clamp((timeUs - incoming.timelineStartUs) / length)
-            // Com quadros vindos do decodificador, o Core Image funde as etapas e repete a borda do
-            // clipe com barras pretas por cima delas. Um intermediário por camada evita isso.
-            frame = frames[0]
-                .insertingIntermediate(cache: false)
-                .applyingFilter("CIDissolveTransition", parameters: [
-                    kCIInputTargetImageKey: frames[1].insertingIntermediate(cache: false),
-                    kCIInputTimeKey: progress,
-                ])
-                .cropped(to: canvas)
+            let kind = incoming.transitionIn?.kind ?? "dissolve"
+            frame = renderTransition(kind: kind, progress: progress, from: frames[0], to: frames[1], canvas: canvas)
         }
 
         for text in texts where timeUs >= text.startUs && timeUs < text.endUs {
@@ -83,16 +77,60 @@ enum FrameRenderer {
         }
 
         var frame = image.transformed(by: transform).composited(over: background).cropped(to: canvas)
+
+        // 1. Recorte Inteligente de IA (Vision) ou Chroma Key
+        if clip.effects.contains("aiCutout") {
+            frame = AIPersonSegmentation.shared.cutout(image: frame, background: background)
+        } else if clip.effects.contains("portraitBlur") {
+            frame = AIPersonSegmentation.shared.portraitBlur(image: frame, blurRadius: canvas.height * 0.02)
+        } else if clip.effects.contains("chromaKey") {
+            frame = ChromaKeyFilter.apply(to: frame, color: .green, background: background)
+        }
+
+        // 2. Filtro de Cor / LUT
         if let filter = clip.filter {
             frame = MangoFilters.apply(filter.id, intensity: filter.intensity, to: frame)
         }
+
+        // 3. Efeitos de Shaders e Textura (EffectSDK clean-room)
         if clip.effects.contains("blur") {
             frame = frame
                 .clampedToExtent()
-                .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: canvas.height * 0.012])
+                .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: canvas.height * 0.015])
                 .cropped(to: canvas)
         }
 
+        if clip.effects.contains("bloom") {
+            frame = frame
+                .applyingFilter("CIBloom", parameters: [
+                    "inputRadius": canvas.height * 0.02,
+                    "inputIntensity": 0.8,
+                ])
+                .cropped(to: canvas)
+        }
+
+        if clip.effects.contains("vignette") {
+            frame = frame
+                .applyingFilter("CIVignette", parameters: [
+                    kCIInputIntensityKey: 1.4,
+                    kCIInputRadiusKey: 1.6,
+                ])
+                .cropped(to: canvas)
+        }
+
+        if clip.effects.contains("glitch") {
+            frame = applyGlitch(frame, canvas: canvas, progress: progress)
+        }
+
+        if clip.effects.contains("filmGrain") {
+            frame = applyFilmGrain(frame, canvas: canvas)
+        }
+
+        if clip.effects.contains("comic") {
+            frame = frame.applyingFilter("CIComicEffect").cropped(to: canvas)
+        }
+
+        // 4. Fade de entrada e saída
         var brightness = 1.0
         if clip.effects.contains("fadeIn") { brightness = min(brightness, local / fadeUs) }
         if clip.effects.contains("fadeOut") { brightness = min(brightness, (clip.timelineDurationUs - local) / fadeUs) }
@@ -107,6 +145,111 @@ enum FrameRenderer {
             ])
         }
         return frame
+    }
+
+    /// Renderizador de transições cinematográficas entre dois quadros.
+    private static func renderTransition(
+        kind: String,
+        progress: Double,
+        from frameA: CIImage,
+        to frameB: CIImage,
+        canvas: CGRect
+    ) -> CIImage {
+        let t = CGFloat(progress)
+        switch kind {
+        case "slideLeft":
+            let offsetA = -canvas.width * t
+            let offsetB = canvas.width * (1 - t)
+            let movedA = frameA.transformed(by: CGAffineTransform(translationX: offsetA, y: 0))
+            let movedB = frameB.transformed(by: CGAffineTransform(translationX: offsetB, y: 0))
+            return movedB.composited(over: movedA).cropped(to: canvas)
+
+        case "slideRight":
+            let offsetA = canvas.width * t
+            let offsetB = -canvas.width * (1 - t)
+            let movedA = frameA.transformed(by: CGAffineTransform(translationX: offsetA, y: 0))
+            let movedB = frameB.transformed(by: CGAffineTransform(translationX: offsetB, y: 0))
+            return movedB.composited(over: movedA).cropped(to: canvas)
+
+        case "zoomIn":
+            let scaleB = 0.5 + 0.5 * t
+            let scaledB = frameB
+                .transformed(by: CGAffineTransform(translationX: -canvas.midX, y: -canvas.midY))
+                .transformed(by: CGAffineTransform(scaleX: scaleB, y: scaleB))
+                .transformed(by: CGAffineTransform(translationX: canvas.midX, y: canvas.midY))
+            return frameA
+                .applyingFilter("CIDissolveTransition", parameters: [
+                    kCIInputTargetImageKey: scaledB,
+                    kCIInputTimeKey: t,
+                ])
+                .cropped(to: canvas)
+
+        case "flashWhite":
+            let peak = 1 - abs(t - 0.5) * 2 // 0 no início, 1 no meio, 0 no fim
+            let base = t < 0.5 ? frameA : frameB
+            let white = CIImage(color: CIColor(red: 1, green: 1, blue: 1)).cropped(to: canvas)
+            return base
+                .applyingFilter("CIDissolveTransition", parameters: [
+                    kCIInputTargetImageKey: white,
+                    kCIInputTimeKey: peak,
+                ])
+                .cropped(to: canvas)
+
+        case "dissolve":
+            fallthrough
+        default:
+            return frameA
+                .insertingIntermediate(cache: false)
+                .applyingFilter("CIDissolveTransition", parameters: [
+                    kCIInputTargetImageKey: frameB.insertingIntermediate(cache: false),
+                    kCIInputTimeKey: progress,
+                ])
+                .cropped(to: canvas)
+        }
+    }
+
+    /// Efeito Glitch / Aberração cromática com separação suave de canais RGB.
+    private static func applyGlitch(_ image: CIImage, canvas: CGRect, progress: Double) -> CIImage {
+        let shift: CGFloat = 8.0 * (1 + CGFloat(sin(progress * 20)))
+        let redShifted = image.transformed(by: CGAffineTransform(translationX: shift, y: 0))
+        let blueShifted = image.transformed(by: CGAffineTransform(translationX: -shift, y: 0))
+
+        let redChannel = redShifted.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 1, y: 0, z: 0, w: 0),
+            "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+        ])
+        let greenChannel = image.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputGVector": CIVector(x: 0, y: 1, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+        ])
+        let blueChannel = blueShifted.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 1, w: 0),
+        ])
+
+        return redChannel
+            .applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: greenChannel])
+            .applyingFilter("CIAdditionCompositing", parameters: [kCIInputBackgroundImageKey: blueChannel])
+            .cropped(to: canvas)
+    }
+
+    /// Granulação de película analógica 35mm cinematográfica.
+    private static func applyFilmGrain(_ image: CIImage, canvas: CGRect) -> CIImage {
+        let noise = CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5))
+            .cropped(to: canvas)
+            .applyingFilter("CIRandomGenerator")
+            .cropped(to: canvas)
+            .applyingFilter("CIColorControls", parameters: [
+                kCIInputSaturationKey: 0,
+                kCIInputContrastKey: 1.5,
+            ])
+
+        return image
+            .applyingFilter("CISoftLightBlendMode", parameters: [kCIInputBackgroundImageKey: noise])
+            .cropped(to: canvas)
     }
 
     static func clamp(_ value: Double) -> Double {

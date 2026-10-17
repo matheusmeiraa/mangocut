@@ -13,6 +13,7 @@ import type {
   TextOverlay,
   Track,
   Transition,
+  TransitionKind,
 } from "./types.ts";
 
 /*
@@ -23,8 +24,40 @@ import type {
  * a CLI (`mangocut run`) e o app iOS chamam do mesmo jeito.
  */
 
-export const FILTER_IDS: readonly FilterId[] = ["noir", "vintage", "warm", "cool", "vivid", "contrast"];
-export const EFFECT_IDS: readonly EffectId[] = ["zoomIn", "zoomOut", "fadeIn", "fadeOut", "blur"];
+export const FILTER_IDS: readonly FilterId[] = [
+  "noir",
+  "vintage",
+  "warm",
+  "cool",
+  "vivid",
+  "contrast",
+  "cyberpunk",
+  "tealOrange",
+  "vhsRetro",
+  "monochromeRed",
+];
+export const EFFECT_IDS: readonly EffectId[] = [
+  "zoomIn",
+  "zoomOut",
+  "fadeIn",
+  "fadeOut",
+  "blur",
+  "vignette",
+  "filmGrain",
+  "glitch",
+  "bloom",
+  "comic",
+  "portraitBlur",
+  "aiCutout",
+  "chromaKey",
+];
+export const TRANSITION_KINDS: readonly TransitionKind[] = [
+  "dissolve",
+  "slideLeft",
+  "slideRight",
+  "zoomIn",
+  "flashWhite",
+];
 export const TEXT_FONTS: readonly TextFont[] = ["system", "rounded", "serif", "mono"];
 
 /** Menor duração de clipe que um corte pode deixar (0,1 s). */
@@ -589,7 +622,7 @@ const COMMANDS: EditorCommand[] = [
         throw new EditorError("o último clipe não tem um clipe seguinte para a transição");
       }
       ext.transitions[segment.id] = {
-        kind: oneOf(params.kind, ["dissolve"] as const, "kind"),
+        kind: oneOf(params.kind, TRANSITION_KINDS, "kind"),
         durationUs: Math.trunc(
           numberParam(params, "durationUs", { min: MIN_CLIP_US, max: 2_000_000, fallback: DEFAULT_TRANSITION_US }),
         ),
@@ -632,6 +665,122 @@ const COMMANDS: EditorCommand[] = [
       const ext = extensionOf(draft);
       const overlay = findText(ext, stringParam(params, "id"));
       ext.texts = ext.texts.filter((t) => t !== overlay);
+    },
+  },
+  {
+    id: "captions.set",
+    label: "Definir ou substituir legendas automáticas geradas por IA",
+    run(draft, params) {
+      if (!Array.isArray(params.captions)) throw new EditorError('o parâmetro "captions" precisa ser uma lista');
+      const ext = extensionOf(draft);
+      const newTexts: TextOverlay[] = [];
+      for (const item of params.captions) {
+        if (!isObject(item)) continue;
+        const text = stringParam(item, "text").trim();
+        if (!text) continue;
+        const startUs = Math.trunc(numberParam(item, "startUs", { min: 0 }));
+        const durationUs = Math.trunc(numberParam(item, "durationUs", { min: MIN_CLIP_US, fallback: DEFAULT_TEXT_US }));
+        newTexts.push({
+          id: newId(),
+          text,
+          startUs,
+          durationUs,
+          font: "system",
+          size: 0.065,
+          color: "#FFFFFF",
+          x: 0.5,
+          y: 0.82,
+          background: true,
+        });
+      }
+      ext.texts = newTexts;
+    },
+  },
+  {
+    id: "template.apply",
+    label: "Aplicar um template de estilo, ritmo e filtros",
+    run(draft, params) {
+      const templateId = stringParam(params, "templateId");
+      const track = findMainTrack(draft);
+      if (!track) throw new EditorError("trilha principal de vídeo não encontrada");
+      const ext = extensionOf(draft);
+      const segments = orderedSegments(track);
+      if (segments.length === 0) throw new EditorError("o projeto precisa de pelo menos 1 clipe");
+
+      switch (templateId) {
+        case "tiktok": {
+          draft.canvas_config = { ...draft.canvas_config, width: 1080, height: 1920, ratio: "9:16" };
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            ext.clipStyles[seg.id] = {
+              filter: { id: "vivid", intensity: 0.9 },
+              effects: i % 2 === 0 ? ["zoomIn"] : ["zoomOut"],
+            };
+            if (i < segments.length - 1) {
+              ext.transitions[seg.id] = { kind: "dissolve", durationUs: 400_000 };
+            }
+          }
+          break;
+        }
+        case "cinematic": {
+          draft.canvas_config = { ...draft.canvas_config, width: 1920, height: 1080, ratio: "16:9" };
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            const effects: EffectId[] = [];
+            if (i === 0) effects.push("fadeIn");
+            if (i === segments.length - 1) effects.push("fadeOut");
+            ext.clipStyles[seg.id] = {
+              filter: { id: "tealOrange", intensity: 0.85 },
+              effects,
+            };
+            if (i < segments.length - 1) {
+              ext.transitions[seg.id] = { kind: "dissolve", durationUs: 600_000 };
+            }
+          }
+          break;
+        }
+        case "retro": {
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            ext.clipStyles[seg.id] = {
+              filter: { id: "vhsRetro", intensity: 1.0 },
+              effects: ["filmGrain", "vignette"],
+            };
+            if (i < segments.length - 1) {
+              ext.transitions[seg.id] = { kind: "dissolve", durationUs: 500_000 };
+            }
+          }
+          break;
+        }
+        case "cyberpunk": {
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            ext.clipStyles[seg.id] = {
+              filter: { id: "cyberpunk", intensity: 0.95 },
+              effects: ["glitch", "bloom"],
+            };
+            if (i < segments.length - 1) {
+              ext.transitions[seg.id] = { kind: "flashWhite", durationUs: 300_000 };
+            }
+          }
+          break;
+        }
+        case "aesthetic": {
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i]!;
+            ext.clipStyles[seg.id] = {
+              filter: { id: "warm", intensity: 0.8 },
+              effects: ["vignette", "portraitBlur"],
+            };
+            if (i < segments.length - 1) {
+              ext.transitions[seg.id] = { kind: "dissolve", durationUs: 500_000 };
+            }
+          }
+          break;
+        }
+        default:
+          throw new EditorError(`template desconhecido: "${templateId}". Use um de: tiktok, cinematic, retro, cyberpunk, aesthetic`);
+      }
     },
   },
 ];

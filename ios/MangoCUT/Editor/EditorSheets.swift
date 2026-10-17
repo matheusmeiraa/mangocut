@@ -125,30 +125,64 @@ struct EffectsSheet: View {
         let systemImage: String
     }
 
-    private static let effects = [
+    private static let motionEffects = [
         Effect(id: "zoomIn", name: "Zoom de aproximação", systemImage: "plus.magnifyingglass"),
         Effect(id: "zoomOut", name: "Zoom de afastamento", systemImage: "minus.magnifyingglass"),
         Effect(id: "fadeIn", name: "Surgir do preto", systemImage: "sunrise"),
         Effect(id: "fadeOut", name: "Sumir no preto", systemImage: "sunset"),
-        Effect(id: "blur", name: "Desfoque", systemImage: "drop"),
+    ]
+
+    private static let shaderEffects = [
+        Effect(id: "blur", name: "Desfoque gaussiano", systemImage: "drop"),
+        Effect(id: "vignette", name: "Vinheta cinematográfica", systemImage: "circle.dashed"),
+        Effect(id: "filmGrain", name: "Granulação de película 35mm", systemImage: "circle.grid.cross"),
+        Effect(id: "glitch", name: "Glitch RGB / Aberração", systemImage: "waveform.path.badge.plus"),
+        Effect(id: "bloom", name: "Glow / Brilho suave", systemImage: "sun.max"),
+        Effect(id: "comic", name: "Estilo Quadrinhos", systemImage: "paintpalette"),
+    ]
+
+    private static let aiEffects = [
+        Effect(id: "aiCutout", name: "Recorte de Pessoa (IA Vision)", systemImage: "person.crop.rectangle.stack"),
+        Effect(id: "portraitBlur", name: "Desfoque de Retrato (IA Vision)", systemImage: "camera.macro"),
+        Effect(id: "chromaKey", name: "Chroma Key (Tela Verde)", systemImage: "square.inset.filled"),
     ]
 
     var body: some View {
         NavigationStack {
             List {
                 if let clip = model.selectedClip {
-                    ForEach(Self.effects) { effect in
-                        Toggle(isOn: Binding(
-                            get: { clip.effects.contains(effect.id) },
-                            set: { model.toggleEffect(effect.id, on: $0) }
-                        )) {
-                            Label(effect.name, systemImage: effect.systemImage)
+                    Section("Inteligência Artificial (Apple Neural Engine)") {
+                        ForEach(Self.aiEffects) { effect in
+                            toggleRow(clip: clip, effect: effect)
                         }
                     }
+
+                    Section("Shaders Gráficos e Texturas (EffectSDK)") {
+                        ForEach(Self.shaderEffects) { effect in
+                            toggleRow(clip: clip, effect: effect)
+                        }
+                    }
+
+                    Section("Movimento e Fades") {
+                        ForEach(Self.motionEffects) { effect in
+                            toggleRow(clip: clip, effect: effect)
+                        }
+                    }
+                } else {
+                    Text("Selecione um clipe na timeline.").foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Efeitos")
+            .navigationTitle("Efeitos e Shaders")
             .sheetDoneButton(model)
+        }
+    }
+
+    private func toggleRow(clip: RenderPlan.Clip, effect: Effect) -> some View {
+        Toggle(isOn: Binding(
+            get: { clip.effects.contains(effect.id) },
+            set: { model.toggleEffect(effect.id, on: $0) }
+        )) {
+            Label(effect.name, systemImage: effect.systemImage)
         }
     }
 }
@@ -187,6 +221,20 @@ struct TransitionSheet: View {
     @ObservedObject var model: EditorModel
     private static let durations: [Double] = [300_000, 500_000, 1_000_000]
 
+    private struct KindOption: Identifiable {
+        let id: String
+        let name: String
+    }
+
+    private static let kinds = [
+        KindOption(id: "none", name: "Nenhuma"),
+        KindOption(id: "dissolve", name: "Dissolver"),
+        KindOption(id: "slideLeft", name: "Deslizar Esq."),
+        KindOption(id: "slideRight", name: "Deslizar Dir."),
+        KindOption(id: "zoomIn", name: "Zoom In"),
+        KindOption(id: "flashWhite", name: "Flash Branco"),
+    ]
+
     var body: some View {
         NavigationStack {
             Form {
@@ -194,19 +242,19 @@ struct TransitionSheet: View {
                     let current = clip.transitionOut
                     Section("Transição para o próximo clipe") {
                         Picker("Tipo", selection: Binding(
-                            get: { current == nil ? "none" : "dissolve" },
-                            set: { model.setTransition(kind: $0 == "none" ? nil : "dissolve", durationUs: current?.durationUs ?? 500_000) }
+                            get: { current?.kind ?? "none" },
+                            set: { model.setTransition(kind: $0 == "none" ? nil : $0, durationUs: current?.durationUs ?? 500_000) }
                         )) {
-                            Text("Nenhuma").tag("none")
-                            Text("Dissolver").tag("dissolve")
+                            ForEach(Self.kinds) { option in
+                                Text(option.name).tag(option.id)
+                            }
                         }
-                        .pickerStyle(.segmented)
                     }
                     if let current {
                         Section {
                             Picker("Duração", selection: Binding(
                                 get: { Self.durations.min { abs($0 - current.durationUs) < abs($1 - current.durationUs) } ?? 500_000 },
-                                set: { model.setTransition(kind: "dissolve", durationUs: $0) }
+                                set: { model.setTransition(kind: current.kind, durationUs: $0) }
                             )) {
                                 ForEach(Self.durations, id: \.self) { duration in
                                     Text("\((duration / 1_000_000).decimalText(1)) s").tag(duration)
@@ -214,12 +262,12 @@ struct TransitionSheet: View {
                             }
                             .pickerStyle(.segmented)
                         } footer: {
-                            Text("A transição sobrepõe o fim deste clipe e o começo do próximo, então o vídeo fica mais curto.")
+                            Text("A transição sobrepõe o fim deste clipe e o começo do próximo de forma contínua.")
                         }
                     }
                 }
             }
-            .navigationTitle("Transição")
+            .navigationTitle("Transições")
             .sheetDoneButton(model)
         }
     }

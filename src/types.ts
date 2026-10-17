@@ -268,8 +268,33 @@ export interface PersistentDraft {
   mangocut?: MangoCutExtension;
 }
 
-export type FilterId = "noir" | "vintage" | "warm" | "cool" | "vivid" | "contrast";
-export type EffectId = "zoomIn" | "zoomOut" | "fadeIn" | "fadeOut" | "blur";
+export type FilterId =
+  | "noir"
+  | "vintage"
+  | "warm"
+  | "cool"
+  | "vivid"
+  | "contrast"
+  | "cyberpunk"
+  | "tealOrange"
+  | "vhsRetro"
+  | "monochromeRed";
+
+export type EffectId =
+  | "zoomIn"
+  | "zoomOut"
+  | "fadeIn"
+  | "fadeOut"
+  | "blur"
+  | "vignette"
+  | "filmGrain"
+  | "glitch"
+  | "bloom"
+  | "comic"
+  | "portraitBlur"
+  | "aiCutout"
+  | "chromaKey";
+
 export type TextFont = "system" | "rounded" | "serif" | "mono";
 
 export interface ClipFilter {
@@ -283,8 +308,10 @@ export interface ClipStyle {
   effects: EffectId[];
 }
 
+export type TransitionKind = "dissolve" | "slideLeft" | "slideRight" | "zoomIn" | "flashWhite";
+
 export interface Transition {
-  kind: "dissolve";
+  kind: TransitionKind;
   durationUs: Microseconds;
 }
 

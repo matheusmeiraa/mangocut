@@ -13,3 +13,10 @@ extension Color {
 
     static let mango = Color(hex: "#FF8A00")
 }
+
+extension Double {
+    /// Número no formato do idioma do aparelho ("0,5" em português), com até `digits` casas.
+    func decimalText(_ digits: Int = 2) -> String {
+        formatted(.number.precision(.fractionLength(0...digits)))
+    }
+}

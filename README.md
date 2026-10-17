@@ -31,11 +31,17 @@ Node: o mesmo código roda no Node.js, no navegador e no JavaScriptCore do iOS.
   `graph_points`.
 - **Leitura de MP4/MOV/M4V sem dependências** (duração, dimensões, rotação, codec), usada para criar projetos
   a partir de um vídeo.
+- **Comandos de edição** (`src/editor.ts`): dividir, aparar, mover, excluir, velocidade, filtro, efeitos,
+  transição e textos. A CLI e o app usam os mesmos comandos.
+- **Editor de vídeo no iPhone**: projetos com vídeos da Fototeca, player, timeline, filtros, efeitos, transição
+  de dissolver, textos e exportação em MP4 (veja [App iOS](#app-ios)).
 
 ### Ainda não faz
 
-- Renderização, preview ou exportação de vídeo: hoje o MangoCUT trabalha só com o arquivo de projeto, tanto na
-  CLI quanto no app.
+- Exportar vídeo pela CLI: o render existe só no app.
+- Trilhas extras (sobreposição, música e áudio separado) e animações por keyframe no editor.
+- Mostrar no CapCut os filtros, efeitos, transições e textos feitos no MangoCUT. Eles ficam no bloco `mangocut` do
+  draft, que só o MangoCUT renderiza. Cortes, ordem e velocidade são compatíveis.
 - Curvas de velocidade variável (`curve_speed`) e keyframes discretos de texto (`string_value`).
 - Migração de projetos de versões antigas do formato.
 
@@ -62,6 +68,9 @@ mangocut info <draft.json> [--json]
 mangocut validate <draft.json> [--json]
 mangocut repair <draft.json> [-o saida.json] [--pretty]
 mangocut new --video <video.mp4> [-o draft.json] [--name <nome>] [--fps <n>] [--force] [--pretty]
+mangocut run <draft.json> <comando> ['{"param": valor}'] (-o saida.json | --in-place) [--pretty]
+mangocut plan <draft.json>
+mangocut commands
 ```
 
 ### `new`: criar um projeto a partir de um vídeo
@@ -122,6 +131,20 @@ nada a reparar, nenhum arquivo é gravado.
 
 Sai com `0` (válido), `2` (problemas reparáveis) ou `1` (erro fatal: JSON inválido, raiz que não é objeto,
 tipos errados).
+
+### `run` e `plan`: editar pela linha de comando
+
+Os comandos de edição são os mesmos que o app usa. `mangocut commands` lista todos. Tempos em microssegundos:
+
+```bash
+npx mangocut run draft_content.json clip.split '{"atUs": 2000000}' --in-place
+npx mangocut run draft_content.json clip.filter '{"segmentId": "<id>", "filter": "vintage", "intensity": 0.8}' --in-place
+npx mangocut run draft_content.json text.add '{"text": "Olá", "startUs": 500000, "y": 0.2}' --in-place
+npx mangocut plan draft_content.json   # clipes na ordem, transições, filtros, efeitos e textos
+```
+
+Filtros: `noir`, `vintage`, `warm`, `cool`, `vivid` e `contrast`. Efeitos: `zoomIn`, `zoomOut`, `fadeIn`, `fadeOut` e
+`blur`. Transição: `dissolve`.
 
 ## Biblioteca
 
@@ -260,13 +283,28 @@ solveBezierParameterF32(0.25, hornerCoefficientsF32(0.42, 0.58));
 
 ## App iOS
 
-O app em `ios/` (SwiftUI, iOS 16+) abre um `draft_content.json` ou `draft_info.json` pelo app Arquivos e mostra
-duração real, trilhas, clipes, keyframes e problemas de validação. Ele também aplica o motor de reparo e exporta
-o projeto corrigido.
+O app em `ios/` (SwiftUI, iOS 16+) é um editor de vídeo:
 
-O app não reimplementa nada em Swift. `npm run build:ios-engine` empacota `src/` num único
-`ios/Generated/mangocut-engine.js`, e o app executa esse arquivo no JavaScriptCore (`MangoEngine.swift`). Assim
-CLI, biblioteca e app usam sempre o mesmo motor.
+- **Projetos:** cria um projeto escolhendo vídeos na Fototeca. Cada projeto fica em
+  Arquivos > No meu iPhone > MangoCUT > Projetos, com o `draft_content.json` e a pasta `media/`.
+- **Editor:** preview e play/pausa, timeline com régua (arraste para navegar), zoom e desfazer.
+- **Clipe selecionado:** dividir, aparar início e fim no ponto da agulha, velocidade de 0,25x a 4x, filtros com
+  prévia do próprio clipe, efeitos (zoom de aproximação ou afastamento, surgir e sumir no preto, desfoque),
+  transição de dissolver para o próximo clipe, mover e excluir.
+- **Textos:** fonte, tamanho, cor, posição, fundo e duração.
+- **Exportação:** MP4 em 720p ou 1080p, para salvar na Fototeca ou compartilhar.
+- **Inspetor:** abre drafts de outros editores para ver a timeline, validar e reparar.
+
+**Como funciona.** Toda edição é um comando do motor TypeScript. `npm run build:ios-engine` empacota `src/` em
+`ios/Generated/mangocut-engine.js`, que o app executa no JavaScriptCore (`MangoEngine.swift`). O motor devolve
+um plano de render. A partir dele, `CompositionBuilder` monta a composição do AVFoundation, e o `MangoCompositor`
+desenha cada quadro com Core Image: encaixe, zoom, filtro, desfoque, fade, dissolver e textos (CoreText com as
+fontes do sistema). O mesmo compositor serve ao player e à exportação, então o que se vê no preview é o que sai
+no MP4.
+
+**Screenshots.** Em todo push para `main`, o CI abre o app no simulador do iPhone em modo de demonstração
+(`--demo-screen editor`, `filters`, `text`…) e publica as imagens na branch
+[`ci-screenshots`](https://github.com/matheusmeiraa/mangocut/tree/ci-screenshots).
 
 Para compilar localmente (precisa de Xcode e [XcodeGen](https://github.com/yonaskolb/XcodeGen)):
 
@@ -326,6 +364,10 @@ Dentro do repositório, `bin/mangocut.js` roda direto de `src/`. Instalado pelo 
 
 O teste "Fase 1" valida templates reais de projeto e só roda se houver uma cópia local do bundle do app em
 `app/`. Essa pasta nunca é versionada (`.gitignore`), e sem ela o teste é pulado.
+
+Antes de contribuir, leia o [`AGENTS.md`](AGENTS.md). Ele traz as regras clean-room deste projeto: o CapCut e
+outros editores só são estudados pelo comportamento e pela aparência, e nenhum código ou asset de outro produto
+entra no repositório.
 
 ## Aviso legal
 

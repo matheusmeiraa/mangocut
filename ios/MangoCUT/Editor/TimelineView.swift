@@ -152,7 +152,6 @@ struct TimelineView: View {
     }
 
     static func speedLabel(_ speed: Double) -> String {
-        let text = speed.rounded() == speed ? String(Int(speed)) : String(format: "%.2g", speed)
-        return "\(text)x"
+        "\(speed.decimalText())x"
     }
 }

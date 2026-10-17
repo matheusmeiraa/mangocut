@@ -44,7 +44,19 @@ final class ProjectStore: ObservableObject {
 
     func reload() {
         let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
-        projects = folders.compactMap(Self.load(folder:)).sorted { $0.modified > $1.modified }
+        let engine = try? AppEngine.get()
+        projects = folders.compactMap(Self.load(folder:)).map { project in
+            // A duração real vem do plano (as transições encurtam o vídeo em relação ao campo duration).
+            var project = project
+            if let engine,
+               let json = try? String(contentsOf: project.draftURL, encoding: .utf8),
+               let plan = try? engine.plan(json: json) {
+                project.durationUs = plan.durationUs
+                project.clipCount = plan.clips.count
+            }
+            return project
+        }
+        .sorted { $0.modified > $1.modified }
     }
 
     nonisolated static func load(folder: URL) -> ProjectInfo? {

@@ -209,7 +209,7 @@ struct TransitionSheet: View {
                                 set: { model.setTransition(kind: "dissolve", durationUs: $0) }
                             )) {
                                 ForEach(Self.durations, id: \.self) { duration in
-                                    Text(String(format: "%.1f s", duration / 1_000_000)).tag(duration)
+                                    Text("\((duration / 1_000_000).decimalText(1)) s").tag(duration)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -282,7 +282,7 @@ struct TextSheet: View {
                     }
                     Section("Tempo") {
                         Stepper(value: $durationSeconds, in: 0.5...60, step: 0.5) {
-                            Text("Duração: \(durationSeconds, specifier: "%.1f") s")
+                            Text("Duração: \(durationSeconds.decimalText(1)) s")
                         }
                         Text("Começa em \(TimeFormat.clock(overlay.startUs))")
                             .foregroundStyle(.secondary)

@@ -302,8 +302,15 @@ Configuração única no repositório do GitHub:
    git push origin v1.0.0
    ```
 
-Depois disso a fonte fica em `https://<seu-usuario>.github.io/<repositorio>/apps.json`. No AltStore ou SideStore,
-adicione essa URL em **Sources**.
+Depois disso a fonte fica em `https://<seu-usuario>.github.io/<repositorio>/apps.json`. A fonte oficial deste
+repositório é `https://matheusmeiraa.github.io/mangocut/apps.json`.
+
+Para usar, adicione essa URL em **Sources** no [SideStore](https://sidestore.io) ou no AltStore Classic
+(instalado pelo AltServer). Esses dois assinam o app com o seu Apple ID.
+
+A versão marketplace do AltStore (AltStore PAL, instalada pelo navegador) **não funciona**: ela só aceita apps
+notarizados pela Apple e recusa a fonte com o aviso *"missing a marketplaceID"*. Notarizar exige uma conta paga
+de desenvolvedor e o cadastro na distribuição alternativa da Apple.
 
 ## Desenvolvimento
 
